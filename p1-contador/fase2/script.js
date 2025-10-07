@@ -6,6 +6,9 @@ const btnCargar = document.getElementById("btn-cargar-nombres");
 const btnReset = document.getElementById("btn-reset");
 const inputArchivo = document.getElementById("input-archivo");
 const tpl = document.getElementById("tpl-persona");
+const btnSubirSeleccionados = document.getElementById("btn-subir-seleccionados");
+const btnBajarSeleccionados = document.getElementById("btn-bajar-seleccionados");
+
 
 // --------- Utilidades ---------
 function normalizaNombre(s) {
@@ -104,14 +107,72 @@ lista.addEventListener("click", (ev) => {
   const span = card.querySelector(".contador");
   let valor = Number(span.dataset.valor || "10");
 
-  if (btn.classList.contains("btn-mas")) valor += 1;
-  if (btn.classList.contains("btn-menos")) valor -= 1;
+  if (btn.classList.contains("btn-mas")) {
+    if (valor < 10) {
+      valor += 0.1;
+      valor = Math.min(valor, 10);
+      setEstado("");
+    } else {
+      setEstado("No puedes poner más nota.");
+      return;
+    }
+  }
 
+  if (btn.classList.contains("btn-menos")) {
+    if (valor > 0) {
+      valor -= 0.1;
+      valor = Math.max(0, valor);
+      setEstado("");
+    } else {
+      setEstado("Ya no puedes quitarle más nota.");
+      return;
+    }
+  }
+  if (btn.classList.contains("btn-reset-individual")) {
+    valor = 0;
+    setEstado(`La nota de ${nombre} se ha puesto en 0.`);
+  }
   estado.set(nombre, valor);
   span.dataset.valor = String(valor);
-  span.textContent = valor;
+  span.textContent = Number.isInteger(valor) ? valor : valor.toFixed(1);
   bump(span);
 });
+
+
+
+
+function modificarSeleccionados(delta) {
+  const seleccionados = lista.querySelectorAll(".persona .seleccion:checked");
+  if (seleccionados.length === 0) {
+    setEstado("No hay alumnos seleccionados.");
+    return;
+  }
+
+  let cambios = 0;
+
+  seleccionados.forEach(checkbox => {
+    const card = checkbox.closest(".persona");
+    const nombre = card.dataset.nombre;
+    const span = card.querySelector(".contador");
+    let valor = Number(span.dataset.valor || "10");
+
+    valor += delta;
+    valor = Math.max(0, Math.min(10, valor));
+
+    estado.set(nombre, valor);
+    span.dataset.valor = String(valor);
+    span.textContent = Number.isInteger(valor) ? valor : valor.toFixed(1);;
+    bump(span);
+    cambios++;
+  });
+
+  setEstado(`Se modificó la nota de ${cambios} alumno(s).`);
+}
+
+btnSubirSeleccionados.addEventListener("click", () => modificarSeleccionados(0.1));
+btnBajarSeleccionados.addEventListener("click", () => modificarSeleccionados(-0.1));
+
+
 
 btnReset.addEventListener("click", () => {
   for (const n of estado.keys()) estado.set(n, 10);
@@ -137,19 +198,31 @@ inputArchivo.addEventListener("change", async (e) => {
     console.error(err);
     setEstado("No se pudo leer el archivo local.");
   } finally {
+
     inputArchivo.value = "";
-  }
-});
+    }
+    });
 
-// --------- Bootstrap ---------
-// Opción A (recomendada en local con live server): intenta cargar nombres.txt
-// Opción B: si falla, el usuario puede usar “Cargar archivo local”
-cargarNombresDesdeTxt("nombres.txt").catch(() => {
-  setEstado("Consejo: coloca un nombres.txt junto a esta página o usa 'Cargar archivo local'.");
-});
+    // --------- Bootstrap ---------
+    // Opción A (recomendada en local con live server): intenta cargar nombres.txt
+    // Opción B: si falla, el usuario puede usar “Cargar archivo local”
+    cargarNombresDesdeTxt("nombres.txt").catch(() => {
+      setEstado("Consejo: coloca un nombres.txt junto a esta página o usa 'Cargar archivo local'.");
+    });
 
-
-//---------- Buscador por nombres y dropdown ----------
-// Referencias al input y al contenedor del dropdown
-const buscadorInput = document.getElementById('buscador-alumno');
-const resultadosBox = document.getElementById('resultados-busqueda');
+    // Permitir marcar el checkbox al hacer clic en la tarjeta
+    document.getElementById('lista').addEventListener('click', function (e) {
+      const card = e.target.closest('.persona');
+      if (!card || !this.contains(card)) return;
+      if (
+        e.target.matches('input.seleccion') ||
+        e.target.closest('button')
+      ) {
+        return;
+      }
+      const checkbox = card.querySelector('input.seleccion');
+      if (checkbox) {
+        checkbox.checked = !checkbox.checked;
+        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
