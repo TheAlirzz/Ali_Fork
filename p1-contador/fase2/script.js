@@ -147,3 +147,9 @@ inputArchivo.addEventListener("change", async (e) => {
 cargarNombresDesdeTxt("nombres.txt").catch(() => {
   setEstado("Consejo: coloca un nombres.txt junto a esta página o usa 'Cargar archivo local'.");
 });
+
+
+//---------- Buscador por nombres y dropdown ----------
+// Referencias al input y al contenedor del dropdown
+const buscadorInput = document.getElementById('buscador-alumno');
+const resultadosBox = document.getElementById('resultados-busqueda');
